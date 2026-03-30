@@ -6,6 +6,12 @@ def application(environ,start_response):
         f"{key} : {value}" for key,value in sorted(environ.items())
     ]
 
+    method = environ['REQUEST_METHOD']
+    port = environ['SERVER_PORT']
+    path = environ['PATH_INFO']
+
+    print(method,port,path) # This is how we can extract the info from environ
+
     response_body = "\n".join(response_body)
 
     status = '200 OK'
