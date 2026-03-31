@@ -42,6 +42,6 @@ class Application:
 
 app = Application()
 middleware = ExceptionHandler(
-    app = application,
+    app = app,
     exception_handler=Handler.generic_exception_handler
 )
