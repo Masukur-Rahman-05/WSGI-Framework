@@ -11,6 +11,14 @@ WSGI Web Framework/
 |-- main.py
 |-- reverseware.py
 |-- README.md
+|-- dynamic-routes/
+|   |-- app.py
+|   |-- common_handlers.py
+|   |-- constants.py
+|   |-- helpers.py
+|   |-- middlewares.py
+|   |-- server.py
+|   |-- README.md
 |-- product-find/
 |   |-- inventory.py
 |   |-- main.py
@@ -47,6 +55,7 @@ From the project root, you can run:
 ```bash
 python main.py
 python reverseware.py
+python dynamic-routes/server.py
 python product-find/main.py
 python exception-handler/main.py
 ```
@@ -98,7 +107,32 @@ dlroW olleH
 
 This example is useful for understanding how middleware can intercept and transform responses.
 
-### 3. `product-find/`
+### 3. `dynamic-routes/`
+
+This folder reorganizes the WSGI app into multiple modules to make future routing and middleware work easier to extend.
+
+Files:
+
+- `dynamic-routes/server.py`: starts the WSGI server
+- `dynamic-routes/app.py`: defines the application and wraps it with middleware
+- `dynamic-routes/constants.py`: stores sample product data
+- `dynamic-routes/helpers.py`: contains the JSON response helper
+- `dynamic-routes/middlewares.py`: contains the exception middleware
+- `dynamic-routes/common_handlers.py`: contains the generic exception handler
+- `dynamic-routes/README.md`: explains the example in detail
+
+Current behavior:
+
+- reads the request path from `PATH_INFO`
+- uses the last path segment as a lookup key
+- returns product data as JSON
+- wraps the app with exception-handling middleware
+
+Important note:
+
+- despite the folder name, the current implementation does not yet parse real dynamic route parameters
+
+### 4. `product-find/`
 
 This folder contains a small path-based product lookup example.
 
@@ -122,7 +156,7 @@ Available example routes:
 
 If a category is missing, the app currently returns `{}`.
 
-### 4. `exception-handler/`
+### 5. `exception-handler/`
 
 This folder demonstrates exception-handling middleware for a WSGI application.
 
@@ -151,6 +185,7 @@ Across the repository, these examples demonstrate:
 - how middleware can wrap applications
 - how middleware can transform responses
 - how middleware can centralize exception handling
+- how to split a WSGI app into reusable modules
 - how to separate application logic from data
 
 ## Current State
@@ -161,6 +196,7 @@ A few implementation details are intentionally simple:
 
 - each example runs as a separate standalone script
 - routing is path-based and minimal
+- `dynamic-routes/` is modularized, but does not yet implement true dynamic route matching
 - unknown product routes currently return `{}` instead of `404 Not Found`
 - `product-find/main.py` currently returns JSON with `text/plain` as the content type
 
@@ -170,6 +206,7 @@ Natural improvements for this project would be:
 
 1. add a reusable router
 2. introduce request and response helper classes
-3. add proper `404 Not Found` handling
-4. standardize JSON response headers across examples
-5. combine middleware patterns into a more framework-like structure
+3. implement true dynamic route parsing
+4. add proper `404 Not Found` handling
+5. standardize JSON response headers across examples
+6. combine middleware patterns into a more framework-like structure
