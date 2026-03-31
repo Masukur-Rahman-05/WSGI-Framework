@@ -1,8 +1,8 @@
 # Exception Handler Example
 
-This folder contains a small WSGI example that wraps an application with a custom exception-handling middleware.
+This folder shows a small WSGI application wrapped by custom exception-handling middleware.
 
-The goal is to show how middleware can catch unhandled exceptions and return a structured JSON error response instead of crashing the request.
+The example focuses on one idea: if the app raises an unhandled exception, the middleware catches it and returns a JSON `500` response instead of letting the request fail silently.
 
 ## File Structure
 
@@ -16,7 +16,11 @@ exception-handler/
 
 - Python 3.x
 
-This example uses only Python's built-in `wsgiref.simple_server` and `json` modules.
+This example uses only built-in modules:
+
+- `wsgiref.simple_server`
+- `json`
+- `typing`
 
 ## How to Run
 
@@ -26,38 +30,28 @@ From the project root:
 python exception-handler/main.py
 ```
 
-The server starts at:
+The server starts on:
 
 ```text
 http://localhost:8000
 ```
 
-## What `main.py` Does
+## What `main.py` Contains
 
-`main.py` contains three main parts:
+`main.py` is organized into four parts:
 
-1. a small in-memory product dictionary
-2. a helper function named `json_response()` for returning JSON responses
-3. an `ExceptionHandler` middleware class that catches unhandled exceptions from the wrapped WSGI app
+1. `data`: a simple in-memory product store
+2. `json_response()`: a helper for JSON WSGI responses
+3. `Handler.generic_exception_handler()`: a reusable exception response function
+4. `ExceptionHandler`: middleware that wraps the application and catches errors
 
-The application reads the request path, extracts the last path segment, and uses that segment as a lookup key in the `data` dictionary.
+The `application()` function reads `PATH_INFO`, extracts the last path segment, and uses it as a key in the `data` dictionary.
 
 ## Available Routes
 
 ### `GET /mobile`
 
-Returns:
-
-```json
-{"mobile": {"product_id": 1, "product_name": "samsung", "price": "$1000"}}
-```
-
-Current implementation detail:
-
-- the lookup key is `mobile`
-- the returned JSON body is the product object for that category
-
-Example response:
+Response:
 
 ```json
 {"product_id": 1, "product_name": "samsung", "price": "$1000"}
@@ -65,29 +59,40 @@ Example response:
 
 ### `GET /laptop`
 
-Example response:
+Response:
 
 ```json
 {"laptop_id": 1, "laptop_name": "Asus", "price": "$1500"}
 ```
 
-### Unknown path
+### `GET /anything-else`
 
-If the category does not exist, the application currently returns an empty JSON object:
+If the key does not exist in `data`, the app currently returns an empty JSON object:
 
 ```json
 {}
 ```
 
-## Exception Middleware
+This is still a `200 OK` response in the current implementation.
 
-The `ExceptionHandler` class wraps the WSGI application:
+## Exception Handling Flow
+
+The application is wrapped like this:
 
 ```python
-ExceptionHandler(application)
+wrapped_app = ExceptionHandler(
+    app=application,
+    exception_handler=Handler.generic_exception_handler
+)
 ```
 
-If the wrapped app raises an exception, the middleware catches it and returns:
+When the wrapped app raises an exception:
+
+1. `ExceptionHandler.__call__()` catches it
+2. the middleware forwards the exception to `Handler.generic_exception_handler()`
+3. the handler returns a JSON error response
+
+The error response is:
 
 - status: `500 Internal server error`
 - content type: `application/json`
@@ -97,27 +102,38 @@ If the wrapped app raises an exception, the middleware catches it and returns:
 {"message": "Unhandled Error has been occurred : <error message>"}
 ```
 
-## How to Test the Error Handler
+## How to Test the Middleware
 
-Inside `main.py`, there is a commented test line:
+In `main.py`, this test line is currently commented out:
 
 ```python
 # raise RuntimeError('Error for testing')
 ```
 
-Uncomment it, restart the server, and make a request. The middleware will catch the exception and return a JSON `500` response.
+To test the middleware:
+
+1. uncomment that line
+2. restart the server
+3. send a request to any route
+
+You should receive a JSON `500` response from the exception handler.
 
 ## Learning Focus
 
 This example demonstrates:
 
-- how to build a WSGI middleware class
-- how to wrap an application before passing it to the server
-- how to catch unhandled exceptions centrally
-- how to return JSON responses from a WSGI app
+- how to build custom WSGI middleware
+- how to wrap a WSGI application before serving it
+- how to centralize exception handling
+- how to return JSON responses from both normal and error paths
 
-## Notes
+## Current Limitations
 
-- Stop the server with `Ctrl + C`
-- This example is for learning; it does not yet include routing, status-specific error classes, or reusable response utilities
-- A useful next step would be adding proper `404 Not Found` handling for unknown categories
+- unknown routes return `{}` with `200 OK` instead of `404 Not Found`
+- response headers only include `Content-type`
+- the error message text is hard-coded
+- the sample data uses different key names for `mobile` and `laptop`
+
+## Possible Next Step
+
+A practical next improvement would be returning a proper `404 Not Found` response for missing categories.
