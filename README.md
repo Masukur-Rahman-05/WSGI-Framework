@@ -1,11 +1,8 @@
 # WSGI Web Framework
 
-This repository is a small learning project for exploring how Python WSGI applications and middleware work.
+This repository is a small learning project for understanding how Python WSGI applications and middleware work.
 
-The current codebase contains two simple runnable examples:
-
-- `main.py` shows a basic WSGI app that inspects the request environment
-- `reverseware.py` shows a custom WSGI middleware that reverses the response body
+The codebase is organized as a collection of simple, focused examples. Each example runs independently and demonstrates one part of building a lightweight web framework with WSGI.
 
 ## Project Structure
 
@@ -14,97 +11,165 @@ WSGI Web Framework/
 |-- main.py
 |-- reverseware.py
 |-- README.md
+|-- product-find/
+|   |-- inventory.py
+|   |-- main.py
+|   |-- README.md
+|-- exception-handler/
+|   |-- main.py
+|   |-- README.md
 ```
 
 ## Requirements
 
 - Python 3.x
 
-No external packages are required because the project uses Python's built-in `wsgiref.simple_server`.
+This project uses only Python built-in modules, mainly:
+
+- `wsgiref.simple_server`
+- `json`
+- `typing`
+
+No external packages are required.
 
 ## How to Run
 
-Run either example from the project root:
-
-```bash
-python main.py
-```
-
-or:
-
-```bash
-python reverseware.py
-```
-
-Both examples start a local server on:
+Each example starts its own local server on:
 
 ```text
 http://localhost:8000
 ```
 
-Only run one file at a time, since both use the same port.
+Run only one example at a time because they all use the same port.
 
-## Example 1: `main.py`
+From the project root, you can run:
 
-`main.py` demonstrates the core WSGI application interface:
+```bash
+python main.py
+python reverseware.py
+python product-find/main.py
+python exception-handler/main.py
+```
+
+Stop the server with `Ctrl + C`.
+
+## Examples Overview
+
+### 1. `main.py`
+
+This is the most basic WSGI example in the project.
+
+It demonstrates the standard WSGI application signature:
 
 ```python
 application(environ, start_response)
 ```
 
-When a request comes in, the app:
+Current behavior:
 
-1. reads the WSGI `environ` dictionary
-2. extracts request details such as method, port, and path
-3. prints those values in the terminal
-4. returns the full environment as a plain-text HTTP response
+- reads the WSGI `environ` dictionary
+- extracts `REQUEST_METHOD`, `SERVER_PORT`, and `PATH_INFO`
+- prints request information in the terminal
+- returns the full sorted environment as a plain-text response
 
-### Current behavior in `main.py`
+This file is useful for learning how request metadata reaches a WSGI app.
 
-- host: `localhost`
-- port: `8000`
-- content type: `text/plain`
-- terminal log: request method, server port, and requested path
-- browser response: sorted WSGI environment key/value pairs
+### 2. `reverseware.py`
 
-This file is useful for learning how request metadata is passed into a WSGI app.
+This file demonstrates custom middleware through a class named `reverseware`.
 
-## Example 2: `reverseware.py`
+Current behavior:
 
-`reverseware.py` demonstrates a custom WSGI middleware class named `reverseware`.
+- wraps another WSGI application
+- calls the wrapped app to get the response body
+- reverses each response chunk before returning it
 
-The middleware:
-
-1. wraps another WSGI application
-2. calls the wrapped application to get its response
-3. reverses each chunk of response bytes before returning it
-
-The wrapped app returns:
+The wrapped application returns:
 
 ```text
 Hello World
 ```
 
-Because the middleware reverses the bytes, the browser receives:
+The middleware turns that into:
 
 ```text
 dlroW olleH
 ```
 
-This example is useful for understanding how middleware can sit between the server and the application and transform the response.
+This example is useful for understanding how middleware can intercept and transform responses.
+
+### 3. `product-find/`
+
+This folder contains a small path-based product lookup example.
+
+Files:
+
+- `product-find/main.py`: runs the WSGI app
+- `product-find/inventory.py`: stores in-memory product data
+- `product-find/README.md`: explains the example in detail
+
+Current behavior:
+
+- reads the request path from `PATH_INFO`
+- uses the last path segment as a category key
+- looks up product data from `inventory.py`
+- returns the result as JSON text
+
+Available example routes:
+
+- `GET /mobile`
+- `GET /laptop`
+
+If a category is missing, the app currently returns `{}`.
+
+### 4. `exception-handler/`
+
+This folder demonstrates exception-handling middleware for a WSGI application.
+
+Files:
+
+- `exception-handler/main.py`: app, JSON helper, exception handler, and middleware
+- `exception-handler/README.md`: explains the example in detail
+
+Current behavior:
+
+- serves product data similar to the product lookup example
+- wraps the application in an `ExceptionHandler` middleware
+- catches unhandled exceptions centrally
+- returns a JSON `500 Internal server error` response when an exception occurs
+
+This example is useful for learning how middleware can handle failures consistently.
 
 ## Learning Focus
 
-This project currently helps demonstrate:
+Across the repository, these examples demonstrate:
 
 - the WSGI callable pattern
 - how `environ` stores request information
-- how `start_response` is used to send headers and status
-- how to run a server with `wsgiref.simple_server`
-- how middleware can wrap and modify application output
+- how `start_response` sets status and headers
+- how to return plain text and JSON responses
+- how middleware can wrap applications
+- how middleware can transform responses
+- how middleware can centralize exception handling
+- how to separate application logic from data
 
-## Notes
+## Current State
 
-- Stop the server with `Ctrl + C`
-- Both scripts are independent examples, not a single combined framework yet
-- A natural next step would be to combine these ideas into reusable routing, request, response, and middleware components
+This repository is still a learning sandbox, not a complete framework yet.
+
+A few implementation details are intentionally simple:
+
+- each example runs as a separate standalone script
+- routing is path-based and minimal
+- unknown product routes currently return `{}` instead of `404 Not Found`
+- `product-find/main.py` currently returns JSON with `text/plain` as the content type
+
+## Suggested Next Steps
+
+Natural improvements for this project would be:
+
+1. add a reusable router
+2. introduce request and response helper classes
+3. add proper `404 Not Found` handling
+4. standardize JSON response headers across examples
+5. combine middleware patterns into a more framework-like structure
