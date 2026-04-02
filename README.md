@@ -1,8 +1,8 @@
 # WSGI Web Framework
 
-This repository is a small learning project for understanding how Python WSGI applications and middleware work.
+This repository is a small learning project for understanding how Python WSGI applications, routing, and middleware work.
 
-The codebase is organized as a collection of simple, focused examples. Each example runs independently and demonstrates one part of building a lightweight web framework with WSGI.
+The codebase is organized as a set of focused examples. Each example runs independently and highlights one step in building a lightweight web framework with WSGI.
 
 ## Project Structure
 
@@ -17,6 +17,8 @@ WSGI Web Framework/
 |   |-- constants.py
 |   |-- helpers.py
 |   |-- middlewares.py
+|   |-- product_controller.py
+|   |-- router.py
 |   |-- server.py
 |   |-- README.md
 |-- product-find/
@@ -42,13 +44,13 @@ No external packages are required.
 
 ## How to Run
 
-Each example starts its own local server on:
+Each server-based example starts on:
 
 ```text
 http://localhost:8000
 ```
 
-Run only one example at a time because they all use the same port.
+Run only one example at a time because they use the same port.
 
 From the project root, you can run:
 
@@ -60,7 +62,7 @@ python product-find/main.py
 python exception-handler/main.py
 ```
 
-Stop the server with `Ctrl + C`.
+Stop a running server with `Ctrl + C`.
 
 ## Examples Overview
 
@@ -109,28 +111,31 @@ This example is useful for understanding how middleware can intercept and transf
 
 ### 3. `dynamic-routes/`
 
-This folder reorganizes the WSGI app into multiple modules to make future routing and middleware work easier to extend.
+This folder is the most framework-like example in the repository so far.
 
 Files:
 
 - `dynamic-routes/server.py`: starts the WSGI server
-- `dynamic-routes/app.py`: defines the application and wraps it with middleware
+- `dynamic-routes/app.py`: defines the `Application` class and `@app.route(...)` decorator
+- `dynamic-routes/router.py`: stores registered routes and dispatches requests by path
+- `dynamic-routes/product_controller.py`: registers the `/products` handler
 - `dynamic-routes/constants.py`: stores sample product data
 - `dynamic-routes/helpers.py`: contains the JSON response helper
 - `dynamic-routes/middlewares.py`: contains the exception middleware
-- `dynamic-routes/common_handlers.py`: contains the generic exception handler
+- `dynamic-routes/common_handlers.py`: contains the 404 and generic exception handlers
 - `dynamic-routes/README.md`: explains the example in detail
 
 Current behavior:
 
-- reads the request path from `PATH_INFO`
-- uses the last path segment as a lookup key
-- returns product data as JSON
+- registers routes through a decorator
+- matches incoming requests using exact `PATH_INFO` lookup
+- serves `GET /products`
+- returns a JSON `404` response for unknown paths
 - wraps the app with exception-handling middleware
 
 Important note:
 
-- despite the folder name, the current implementation does not yet parse real dynamic route parameters
+- despite the folder name, the current implementation does not yet parse dynamic path parameters such as `/products/1`
 
 ### 4. `product-find/`
 
@@ -186,6 +191,7 @@ Across the repository, these examples demonstrate:
 - how middleware can transform responses
 - how middleware can centralize exception handling
 - how to split a WSGI app into reusable modules
+- how to register and dispatch routes
 - how to separate application logic from data
 
 ## Current State
@@ -195,18 +201,18 @@ This repository is still a learning sandbox, not a complete framework yet.
 A few implementation details are intentionally simple:
 
 - each example runs as a separate standalone script
-- routing is path-based and minimal
-- `dynamic-routes/` is modularized, but does not yet implement true dynamic route matching
-- unknown product routes currently return `{}` instead of `404 Not Found`
+- routing is still minimal and mostly path-based
+- `dynamic-routes/` uses exact path matching, not true parameterized routes yet
+- `dynamic-routes/` currently exposes only one registered route: `/products`
 - `product-find/main.py` currently returns JSON with `text/plain` as the content type
 
 ## Suggested Next Steps
 
 Natural improvements for this project would be:
 
-1. add a reusable router
+1. implement true dynamic route parsing
 2. introduce request and response helper classes
-3. implement true dynamic route parsing
-4. add proper `404 Not Found` handling
-5. standardize JSON response headers across examples
-6. combine middleware patterns into a more framework-like structure
+3. support method-based routing
+4. standardize JSON response headers across examples
+5. expand the route registry to support multiple controllers
+6. combine middleware and routing patterns into a more framework-like structure

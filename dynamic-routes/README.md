@@ -1,8 +1,8 @@
 # Dynamic Routes Example
 
-This folder contains a small WSGI application split into multiple modules to make route handling and middleware easier to extend.
+This folder contains a small WSGI application that moves routing into a reusable route manager instead of hard-coding path logic inside one function.
 
-The current implementation still uses the last URL path segment as a lookup key, but the structure is closer to a reusable app layout than the earlier single-file examples.
+The example is still intentionally small, but it now demonstrates a cleaner structure for registering routes, dispatching requests, and wrapping the app with middleware.
 
 ## File Structure
 
@@ -13,6 +13,8 @@ dynamic-routes/
 |-- constants.py
 |-- helpers.py
 |-- middlewares.py
+|-- product_controller.py
+|-- router.py
 |-- server.py
 |-- README.md
 ```
@@ -21,7 +23,7 @@ dynamic-routes/
 
 - Python 3.x
 
-This example uses only built-in Python modules.
+This example uses only Python built-in modules.
 
 ## How to Run
 
@@ -42,16 +44,29 @@ http://localhost:8000
 ### `server.py`
 
 - starts the WSGI server with `wsgiref.simple_server`
-- imports the wrapped application from `app.py`
+- imports the wrapped middleware application from `app.py`
+- imports `product_controller.py` so routes are registered before requests arrive
 
 ### `app.py`
 
 - defines the `Application` class
-- reads the request path from `PATH_INFO`
-- extracts the last path segment as a category
-- looks up product data from `constants.py`
-- returns a JSON response
+- creates a `RouteManager` instance
+- exposes the `@app.route(...)` decorator for route registration
+- forwards incoming requests to `RouteManager.dispatch()`
 - wraps the app with `ExceptionHandler`
+
+### `router.py`
+
+- contains the `RouteManager` class
+- stores registered routes in a dictionary
+- prevents duplicate route registration
+- dispatches requests by matching `PATH_INFO`
+- falls back to a 404 handler when no route matches
+
+### `product_controller.py`
+
+- registers the `/products` route with `@app.route("/products")`
+- returns sample product data from `constants.py`
 
 ### `constants.py`
 
@@ -65,28 +80,30 @@ http://localhost:8000
 ### `middlewares.py`
 
 - contains the `ExceptionHandler` middleware class
-- catches unhandled exceptions from the wrapped app
+- catches unhandled exceptions raised by the wrapped app
 
 ### `common_handlers.py`
 
 - contains `Handler.generic_exception_handler()`
-- returns a JSON `500` response when an exception occurs
+- contains `Handler.url_not_found_handler()`
+- returns JSON responses for both `500` and `404` cases
 
 ## Current Request Flow
 
 When a request comes in:
 
-1. `server.py` serves the wrapped middleware app
-2. `ExceptionHandler` calls the `Application` instance
-3. `Application` reads `PATH_INFO`
-4. the last path segment is used as a lookup key in `data`
-5. the result is returned through `json_response()`
+1. `server.py` starts the WSGI server with `middleware`
+2. `ExceptionHandler` calls the wrapped `Application`
+3. `Application.__call__()` forwards the request to `RouteManager.dispatch()`
+4. `RouteManager` looks up the request path in its route table
+5. the matched handler returns a JSON response
+6. if no route matches, `Handler.url_not_found_handler()` returns a JSON `404`
 
-If an exception is raised, the middleware catches it and returns a JSON error response instead.
+If a registered handler raises an exception, the middleware catches it and returns a JSON `500` response instead.
 
 ## Available Routes
 
-### `GET /mobile`
+### `GET /products`
 
 Response:
 
@@ -94,23 +111,19 @@ Response:
 {"product_id": 1, "product_name": "samsung", "price": "$1000"}
 ```
 
-### `GET /laptop`
-
-Response:
-
-```json
-{"laptop_id": 1, "laptop_name": "Asus", "price": "$1500"}
-```
-
 ### `GET /anything-else`
 
-If the key does not exist, the app currently returns:
+If the path is not registered, the app returns:
 
 ```json
-{}
+{"message": "Requested path /anything-else doesn't exist"}
 ```
 
-This is still returned with `200 OK`.
+Status:
+
+```text
+404 NOT FOUND
+```
 
 ## Exception Handling
 
@@ -133,37 +146,30 @@ If the wrapped app raises an exception, the response is:
 {"message": "Unhandled Error has been occurred : <error message>"}
 ```
 
-## How to Test the Error Handler
-
-In `app.py`, this line is available for testing:
-
-```python
-# raise RuntimeError('Error for testing')
-```
-
-To test exception handling:
-
-1. uncomment that line
-2. restart the server
-3. send a request to any route
-
 ## Learning Focus
 
 This example demonstrates:
 
-- how to split a WSGI app across multiple files
-- how to organize helpers, constants, middleware, and handlers
+- how to split a WSGI app across multiple modules
+- how to register routes with a decorator
+- how to dispatch requests with a small route manager
 - how to return JSON from a WSGI application
-- how to wrap a class-based application with middleware
-- how to centralize exception handling
+- how to handle missing routes with a dedicated 404 handler
+- how to wrap an application with exception-handling middleware
 
 ## Current Limitations
 
-- route matching is still based only on the last path segment
-- there is no real dynamic parameter parsing yet
-- unknown routes return `{}` instead of `404 Not Found`
-- sample data keys are not standardized between products
+- route matching is exact string matching only
+- there is no support for path parameters such as `/products/<id>`
+- only one sample route is currently registered
+- `product_controller.py` currently returns only the `mobile` product
+- response headers are passed manually instead of through a response object
 
-## Possible Next Step
+## Possible Next Steps
 
-A strong next step would be adding real dynamic route patterns such as `/products/<category>` or `/products/<category>/<id>`.
+Natural next improvements for this example would be:
+
+1. add support for dynamic path parameters
+2. register separate handlers for multiple products or resources
+3. introduce request and response classes
+4. support method-based routing such as `GET` and `POST`
