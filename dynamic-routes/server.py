@@ -1,5 +1,6 @@
 from wsgiref.simple_server import make_server
 from app import middleware
+import product_controller
 
 
 if __name__ == "__main__":
