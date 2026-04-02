@@ -1,5 +1,6 @@
 from constants import data
 from helpers import json_response
+from common_handlers import Handler
 
 
 class RouteManager:
@@ -13,7 +14,7 @@ class RouteManager:
 
     def dispatch(self,environ,start_response):
         path = environ['PATH_INFO']
-        handler = self.routes.get(path)
+        handler = self.routes.get(path,Handler.url_not_found_handler)
         response = handler(environ,start_response)
         return response
 
